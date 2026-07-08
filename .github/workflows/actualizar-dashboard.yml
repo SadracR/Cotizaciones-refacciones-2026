@@ -1,6 +1,6 @@
-
 name: Actualizar Dashboard
 
+# Se ejecuta automáticamente cuando subes un archivo .xlsx al repositorio
 on:
   push:
     paths:

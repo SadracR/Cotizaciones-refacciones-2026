@@ -1,0 +1,943 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Control de Compras — Refacciones 2026</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,400;0,500;0,600;0,700;1,400&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+:root {
+  --white:    #FFFFFF;
+  --bg:       #F3F4F6;
+  --surface:  #FFFFFF;
+  --border:   #E5E7EB;
+  --border2:  #F3F4F6;
+  --text:     #111827;
+  --text2:    #374151;
+  --muted:    #6B7280;
+  --muted2:   #9CA3AF;
+  --blue:     #1D4ED8;
+  --blue-lt:  #EFF6FF;
+  --green:    #047857;
+  --green-lt: #ECFDF5;
+  --amber:    #B45309;
+  --amber-lt: #FFFBEB;
+  --red:      #B91C1C;
+  --red-lt:   #FEF2F2;
+  --purple:   #6D28D9;
+  --purple-lt:#F5F3FF;
+  --slate:    #475569;
+  --matco:    #1D4ED8;
+  --matco-lt: #DBEAFE;
+  --hawk:     #047857;
+  --hawk-lt:  #D1FAE5;
+  --ctp:      #B45309;
+  --ctp-lt:   #FEF3C7;
+  --inact:    #92400E;
+  --inact-lt: #FEF3C7;
+  --activ:    #065F46;
+  --activ-lt: #D1FAE5;
+  --sini:     #991B1B;
+  --sini-lt:  #FEE2E2;
+  --sans: 'Inter', sans-serif;
+  --mono: 'JetBrains Mono', monospace;
+  --radius: 10px;
+  --shadow: 0 1px 3px rgba(0,0,0,.08), 0 1px 2px rgba(0,0,0,.06);
+  --shadow-md: 0 4px 6px rgba(0,0,0,.07), 0 2px 4px rgba(0,0,0,.06);
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body { background: var(--bg); color: var(--text); font-family: var(--sans); font-size: 14px; line-height: 1.6; }
+
+/* ─── TOPBAR ─── */
+.topbar {
+  background: var(--blue);
+  padding: 0 28px;
+  display: flex; align-items: center; gap: 20px; flex-wrap: wrap;
+  position: sticky; top: 0; z-index: 100;
+  box-shadow: 0 2px 8px rgba(0,0,0,.2);
+}
+.topbar-brand { display: flex; align-items: center; gap: 12px; padding: 14px 0; flex: 1; min-width: 220px; }
+.brand-ico { background: rgba(255,255,255,.18); border-radius: 8px; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; }
+.brand-ico svg { width: 20px; height: 20px; stroke: #fff; fill: none; stroke-width: 1.8; }
+.brand-name { font-size: 15px; font-weight: 700; color: #fff; line-height: 1.2; }
+.brand-sub  { font-size: 11px; color: rgba(255,255,255,.65); }
+
+/* TC block */
+.tc-block { display: flex; align-items: center; gap: 8px; padding: 8px 0; }
+.tc-lbl { font-size: 10.5px; font-weight: 600; color: rgba(255,255,255,.7); font-family: var(--mono); letter-spacing: .05em; text-transform: uppercase; white-space: nowrap; }
+.tc-wrap { position: relative; }
+.tc-wrap::before { content: '$'; position: absolute; left: 9px; top: 50%; transform: translateY(-50%); color: var(--amber); font-family: var(--mono); font-size: 13px; font-weight: 600; pointer-events: none; }
+input.tc { padding: 7px 9px 7px 22px; border: 1px solid rgba(255,255,255,.25); border-radius: 7px; background: rgba(255,255,255,.12); color: #fff; font-family: var(--mono); font-size: 14px; font-weight: 600; width: 115px; outline: none; transition: border-color .15s; }
+input.tc::placeholder { color: rgba(255,255,255,.35); font-weight: 400; }
+input.tc:focus { border-color: rgba(255,255,255,.6); background: rgba(255,255,255,.18); }
+.tc-hint { font-size: 10px; color: rgba(255,255,255,.55); white-space: nowrap; }
+
+/* Upload btn */
+.btn-xl { display: flex; align-items: center; gap: 7px; padding: 8px 16px; border: 1px solid rgba(255,255,255,.3); border-radius: 7px; background: rgba(255,255,255,.12); color: #fff; font-family: var(--mono); font-size: 11px; font-weight: 600; letter-spacing: .03em; text-transform: uppercase; cursor: pointer; white-space: nowrap; transition: background .15s; }
+.btn-xl:hover { background: rgba(255,255,255,.22); }
+.btn-xl svg { width: 14px; height: 14px; stroke: currentColor; fill: none; stroke-width: 1.8; }
+.src-pill { font-size: 10px; font-family: var(--mono); color: rgba(255,255,255,.5); }
+.src-pill.live { color: #6EE7B7; font-weight: 600; }
+
+/* ─── MAIN ─── */
+main { max-width: 1440px; margin: 0 auto; padding: 28px 28px 64px; }
+
+/* ─── KPI ROW ─── */
+.kpi-grid { display: grid; grid-template-columns: repeat(6,1fr); gap: 12px; margin-bottom: 24px; }
+@media (max-width:1200px){ .kpi-grid{grid-template-columns:repeat(3,1fr);} }
+@media (max-width:640px){ .kpi-grid{grid-template-columns:repeat(2,1fr);} }
+
+.kpi { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px 18px; box-shadow: var(--shadow); border-top: 3px solid var(--border); }
+.kpi.bl { border-top-color: var(--blue); }
+.kpi.gr { border-top-color: var(--green); }
+.kpi.am { border-top-color: var(--amber); }
+.kpi.re { border-top-color: var(--red); }
+.kpi.pu { border-top-color: var(--purple); }
+.kpi.sl { border-top-color: var(--slate); }
+.kpi-lbl { display: block; font-family: var(--mono); font-size: 9.5px; font-weight: 600; letter-spacing: .07em; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; }
+.kpi-val { font-size: 27px; font-weight: 700; line-height: 1; color: var(--text); font-family: var(--mono); }
+.kpi-sub { font-size: 10.5px; color: var(--muted); margin-top: 4px; font-family: var(--mono); }
+
+/* ─── SECTION HEADER ─── */
+.sec { display: flex; align-items: center; gap: 12px; margin: 32px 0 16px; }
+.sec:first-child { margin-top: 0; }
+.sec h2 { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--text2); white-space: nowrap; }
+.sec-line { flex: 1; height: 1px; background: var(--border); }
+.sec-tag { font-size: 10px; font-weight: 600; font-family: var(--mono); color: var(--muted); background: var(--surface); border: 1px solid var(--border); border-radius: 20px; padding: 2px 11px; white-space: nowrap; }
+
+/* ─── STATUS STRIP ─── */
+.status-strip { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 24px; }
+.chip { display: inline-flex; align-items: center; gap: 7px; background: var(--surface); border: 1px solid var(--border); border-radius: 20px; padding: 5px 14px; box-shadow: var(--shadow); }
+.chip-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.chip-lbl { font-family: var(--mono); font-size: 10.5px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+.chip-n { font-family: var(--mono); font-size: 14px; font-weight: 700; color: var(--text); }
+
+/* ─── UNIT CARDS ─── */
+.units-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(380px,1fr)); gap: 16px; margin-bottom: 24px; }
+.unit-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); overflow: hidden; }
+.unit-card-hdr { display: flex; align-items: center; gap: 12px; padding: 14px 16px; border-bottom: 1px solid var(--border2); }
+.unit-badge { font-family: var(--mono); font-size: 17px; font-weight: 700; color: var(--blue); }
+.unit-info { flex: 1; min-width: 0; }
+.unit-name { font-size: 12px; font-weight: 600; color: var(--text2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.unit-tema { font-size: 10.5px; color: var(--muted); margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.status-badge { display: inline-flex; align-items: center; gap: 5px; border-radius: 20px; padding: 3px 10px; font-family: var(--mono); font-size: 9.5px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; flex-shrink: 0; }
+.sb-activa   { background: var(--activ-lt); color: var(--activ); }
+.sb-inactiva { background: var(--inact-lt); color: var(--inact); }
+.sb-siniestrado { background: var(--sini-lt); color: var(--sini); }
+.sb-dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+
+.unit-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.unit-table thead th { background: var(--border2); font-family: var(--mono); font-size: 9px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; padding: 7px 12px; text-align: center; color: var(--muted); border-bottom: 1px solid var(--border); }
+.unit-table thead th:first-child { text-align: left; }
+.unit-table tbody td { padding: 8px 12px; border-bottom: 1px solid var(--border2); font-family: var(--mono); font-size: 11.5px; text-align: center; }
+.unit-table tbody td:first-child { text-align: left; font-family: var(--sans); font-size: 11px; }
+.unit-table tbody tr:last-child td { border-bottom: none; }
+.unit-table tbody tr:hover { background: #FAFAFA; }
+.th-m { color: var(--matco)!important; }
+.th-h { color: var(--hawk)!important; }
+.th-c { color: var(--ctp)!important; }
+.td-m { color: var(--matco); font-weight: 600; }
+.td-h { color: var(--hawk); font-weight: 600; }
+.td-c { color: var(--ctp); font-weight: 600; }
+.td-dim { color: var(--muted2); font-size: 10.5px; }
+.td-srv { color: var(--purple); font-weight: 600; }
+.unit-footer { padding: 10px 14px; background: var(--border2); border-top: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 6px; }
+.uf-stat { font-size: 10px; font-family: var(--mono); color: var(--muted); }
+.uf-stat b { color: var(--text2); }
+.pill-best { display: inline-block; background: var(--hawk-lt); color: var(--hawk); font-family: var(--mono); font-size: 9px; font-weight: 700; padding: 1px 6px; border-radius: 4px; margin-left: 4px; text-transform: uppercase; letter-spacing: .03em; }
+.pill-srv { display: inline-block; background: var(--purple-lt); color: var(--purple); font-family: var(--mono); font-size: 9px; font-weight: 700; padding: 1px 6px; border-radius: 4px; text-transform: uppercase; }
+
+/* ─── CHART CARD ─── */
+.chart-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); padding: 20px 22px; margin-bottom: 20px; }
+.chart-card canvas { max-height: 300px; }
+.chart-hdr { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; flex-wrap: wrap; }
+.chart-title { font-size: 13px; font-weight: 700; color: var(--text); display: flex; align-items: center; gap: 8px; }
+.chart-title::before { content:''; display:inline-block; width:3px; height:16px; background:var(--blue); border-radius:2px; }
+.chart-note { font-size: 10.5px; color: var(--muted); font-style: italic; margin-left: auto; }
+.charts-2col { display: grid; grid-template-columns: 1.3fr 1fr; gap: 16px; margin-bottom: 20px; }
+@media (max-width:900px){ .charts-2col{ grid-template-columns: 1fr; } }
+
+/* ─── TABLA DETALLE ─── */
+.tbl-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); overflow: hidden; margin-bottom: 24px; }
+.tbl-toolbar { padding: 12px 16px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 10px; flex-wrap: wrap; background: #FAFAFA; }
+.tbl-title { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: var(--text2); }
+.search { border: 1px solid var(--border); border-radius: 6px; padding: 6px 10px; font-family: var(--mono); font-size: 12px; outline: none; width: 240px; }
+.search:focus { border-color: var(--blue); }
+select.flt { border: 1px solid var(--border); border-radius: 6px; padding: 6px 10px; font-family: var(--mono); font-size: 12px; outline: none; background: var(--surface); }
+.tbl-cnt { font-family: var(--mono); font-size: 11px; color: var(--muted); margin-left: auto; }
+.tbl-scroll { overflow-x: auto; max-height: 520px; overflow-y: auto; }
+table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+thead th { background: #F9FAFB; font-family: var(--mono); font-size: 9.5px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); text-align: center; padding: 10px 12px; border-bottom: 1px solid var(--border); white-space: nowrap; position: sticky; top: 0; z-index: 1; }
+thead th.tl { text-align: left; }
+tbody td { padding: 9px 12px; border-bottom: 1px solid var(--border2); font-family: var(--mono); font-size: 11.5px; text-align: center; white-space: nowrap; color: var(--text); }
+tbody td.tl { text-align: left; font-family: var(--sans); font-size: 12px; }
+tbody tr:last-child td { border-bottom: none; }
+tbody tr:hover { background: #F9FAFB; }
+td.econ-cell { font-family: var(--mono); font-weight: 700; font-size: 13px; color: var(--blue); }
+td.dimm { color: var(--muted2); }
+.nota-tbl { padding: 10px 16px; border-top: 1px solid var(--border); background: #FAFAFA; font-size: 10.5px; color: var(--muted); font-style: italic; }
+
+/* ─── TABS ─── */
+.tabs-nav { display: flex; align-items: center; gap: 2px; padding: 0 8px; border-left: 1px solid rgba(255,255,255,.15); margin-left: 8px; }
+.tab-btn { font-family: var(--mono); font-size: 11px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: rgba(255,255,255,.55); background: transparent; border: none; border-bottom: 2px solid transparent; padding: 0 14px; height: 54px; cursor: pointer; white-space: nowrap; transition: color .15s; display: flex; align-items: center; gap: 6px; }
+.tab-btn:hover { color: rgba(255,255,255,.85); }
+.tab-btn.active { color: #fff; border-bottom-color: #FCD34D; }
+.tab-btn .tab-dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; opacity: .6; }
+.view { display: none; }
+.view.active { display: block; }
+
+/* ─── TABS ─── */
+
+footer { text-align: center; font-family: var(--mono); font-size: 10.5px; color: var(--muted2); padding: 20px 0 32px; border-top: 1px solid var(--border); margin: 0 28px; }
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="topbar-brand">
+    <div class="brand-ico">
+      <svg viewBox="0 0 24 24"><path d="M9 17H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v10a2 2 0 01-2 2h-4"/><polyline points="9,17 9,12 15,12 15,17"/><polyline points="14,3 14,8 7,8"/></svg>
+    </div>
+    <div>
+      <div class="brand-name">Control de Compras — Refacciones 2026</div>
+      <div class="brand-sub">MATCO (MXN) · HAWTHORNE (USD) · CTP (USD)</div>
+    </div>
+  </div>
+  <div class="tc-block">
+    <div class="tc-lbl">TC MXN/USD</div>
+    <div class="tc-wrap"><input class="tc" type="number" id="tc" placeholder="ej. 19.50" step="0.01" min="1"></div>
+    <div class="tc-hint" id="tc-hint">Captura para comparar en pesos</div>
+  </div>
+  <div style="display:flex;align-items:center;gap:10px;">
+    <button class="btn-xl" id="btn-load">
+      <svg viewBox="0 0 16 16"><path d="M8 1v9M5 7l3 3 3-3M2 11v2a1 1 0 001 1h10a1 1 0 001-1v-2"/></svg>
+      Cargar Excel
+    </button>
+    <div class="src-pill" id="src-pill">datos base</div>
+  </div>
+  <nav class="tabs-nav">
+    <button class="tab-btn active" data-tab="dashboard"><span class="tab-dot"></span>Dashboard</button>
+    <button class="tab-btn" data-tab="resumen"><span class="tab-dot"></span>Resumen Global</button>
+    <button class="tab-btn" data-tab="comparativo"><span class="tab-dot"></span>Comparativo</button>
+    <button class="tab-btn" data-tab="detalle"><span class="tab-dot"></span>Detalle</button>
+  </nav>
+  <input type="file" id="file-in" accept=".xlsx,.xls" style="display:none">
+</header>
+
+<main>
+<div class="view active" id="view-dashboard">
+
+  <!-- STATUS STRIP -->
+  <div class="status-strip" id="status-strip"></div>
+
+  <!-- KPIs -->
+  <div class="kpi-grid">
+    <div class="kpi bl">
+      <span class="kpi-lbl">Partidas COTIZANDO</span>
+      <div class="kpi-val" id="kv-cot">—</div>
+      <div class="kpi-sub" id="ks-cot">— unidades · — pedidos</div>
+    </div>
+    <div class="kpi bl">
+      <span class="kpi-lbl">Total MATCO</span>
+      <div class="kpi-val" id="kv-m">—</div>
+      <div class="kpi-sub">MXN sin IVA</div>
+    </div>
+    <div class="kpi gr">
+      <span class="kpi-lbl">Total HAWTHORNE</span>
+      <div class="kpi-val" id="kv-h">—</div>
+      <div class="kpi-sub" id="ks-h">—</div>
+    </div>
+    <div class="kpi am">
+      <span class="kpi-lbl">Total CTP</span>
+      <div class="kpi-val" id="kv-c">—</div>
+      <div class="kpi-sub" id="ks-c">—</div>
+    </div>
+    <div class="kpi re">
+      <span class="kpi-lbl">Unidades inactivas</span>
+      <div class="kpi-val" id="kv-inact">—</div>
+      <div class="kpi-sub">en proceso de cotización</div>
+    </div>
+    <div class="kpi sl">
+      <span class="kpi-lbl">Sin precio completo</span>
+      <div class="kpi-val" id="kv-sin">—</div>
+      <div class="kpi-sub">partidas sin los 3 proveedores</div>
+    </div>
+  </div>
+
+  <!-- COMPARATIVO CHART + TABLA RESUMEN -->
+  <div class="sec"><h2>Comparativo de costos por unidad</h2><div class="sec-line"></div><div class="sec-tag" id="cmp-tag">—</div></div>
+  <div class="charts-2col">
+    <div class="chart-card">
+      <div class="chart-hdr">
+        <div class="chart-title">Costo total por unidad económica</div>
+        <span class="chart-note" id="chart-note">· sin TC: HAWK y CTP en USD</span>
+      </div>
+      <canvas id="ch-main"></canvas>
+    </div>
+    <div class="chart-card">
+      <div class="chart-hdr">
+        <div class="chart-title">Distribución de pedidos</div>
+      </div>
+      <canvas id="ch-donut"></canvas>
+    </div>
+  </div>
+
+  <!-- UNIT CARDS -->
+  <div class="sec"><h2>Detalle por unidad</h2><div class="sec-line"></div><div class="sec-tag">ACTIVA · INACTIVA por unidad</div></div>
+  <div class="units-grid" id="units-grid"></div>
+
+  <!-- TABLA DETALLE -->
+  <div class="sec"><h2>Todas las partidas en cotizando</h2><div class="sec-line"></div><div class="sec-tag" id="det-tag">—</div></div>
+  <div class="tbl-card">
+    <div class="tbl-toolbar">
+      <span class="tbl-title">Búsqueda y filtros</span>
+      <input class="search" type="text" id="det-search" placeholder="Parte, descripción, unidad…">
+      <select class="flt" id="det-econ"><option value="">Todas las unidades</option></select>
+      <select class="flt" id="det-status-u"><option value="">Activa / Inactiva</option><option value="ACTIVA">Activa</option><option value="INACTIVA">Inactiva</option></select>
+      <span class="tbl-cnt" id="det-cnt">—</span>
+    </div>
+    <div class="tbl-scroll">
+      <table>
+        <thead>
+          <tr>
+            <th class="tl">Unidad</th>
+            <th>Estado</th>
+            <th>Pedido</th>
+            <th class="tl" style="min-width:120px">Núm. parte</th>
+            <th class="tl" style="min-width:200px">Descripción</th>
+            <th>Cant.</th>
+            <th class="th-m">MATCO MXN</th>
+            <th class="th-h" id="det-hdr-h">HAWK</th>
+            <th class="th-h">Días</th>
+            <th class="th-c" id="det-hdr-c">CTP</th>
+            <th class="th-c">Días</th>
+            <th class="tl">Tema / Trabajo</th>
+          </tr>
+        </thead>
+        <tbody id="det-tbody"></tbody>
+      </table>
+    </div>
+    <div class="nota-tbl" id="det-nota">* Captura el tipo de cambio en la barra superior para ver HAWK y CTP en pesos y comparar en la misma moneda.</div>
+  </div>
+
+</div><!-- /view-dashboard -->
+
+<!-- ══════════ RESUMEN GLOBAL ══════════ -->
+<div class="view" id="view-resumen">
+  <div style="padding:28px 0 64px;">
+
+    <div class="sec" style="margin-top:0"><h2>Resumen Global — Cotización de Refacciones</h2><div class="sec-line"></div><div class="sec-tag" id="rg-tag">—</div></div>
+
+    <div class="kpi-grid" style="margin-bottom:24px;">
+      <div class="kpi bl"><span class="kpi-lbl">Unidades</span><div class="kpi-val" id="rg-unids">—</div><div class="kpi-sub">con pedidos activos</div></div>
+      <div class="kpi bl"><span class="kpi-lbl">Pedidos</span><div class="kpi-val" id="rg-peds">—</div><div class="kpi-sub">en cotización</div></div>
+      <div class="kpi bl"><span class="kpi-lbl">Partidas</span><div class="kpi-val" id="rg-parts">—</div><div class="kpi-sub">total refacciones</div></div>
+      <div class="kpi bl"><span class="kpi-lbl">Total MATCO</span><div class="kpi-val" id="rg-m">—</div><div class="kpi-sub">MXN sin IVA</div></div>
+      <div class="kpi gr"><span class="kpi-lbl">Total HAWTHORNE</span><div class="kpi-val" id="rg-h">—</div><div class="kpi-sub" id="rg-hs">—</div></div>
+      <div class="kpi am"><span class="kpi-lbl">Total CTP</span><div class="kpi-val" id="rg-c">—</div><div class="kpi-sub" id="rg-cs">—</div></div>
+    </div>
+
+    <div class="tbl-card">
+      <div class="tbl-toolbar">
+        <span class="tbl-title">Resumen por unidad económica</span>
+        <span style="font-size:10.5px;color:var(--muted);font-style:italic" id="rg-tc-note">Sin tipo de cambio — HAWK y CTP en USD</span>
+        <span class="tbl-cnt" id="rg-cnt">—</span>
+      </div>
+      <div class="tbl-scroll">
+        <table>
+          <thead><tr>
+            <th class="tl">Núm. econ.</th>
+            <th>Estado</th>
+            <th class="tl" style="min-width:140px">Equipo</th>
+            <th class="tl" style="min-width:120px">Obra</th>
+            <th>Pedidos</th>
+            <th>Partidas</th>
+            <th class="th-m">MATCO MXN</th>
+            <th class="th-h" id="rg-hh">HAWK</th>
+            <th class="th-c" id="rg-ch">CTP</th>
+            <th>Días HAWK</th>
+            <th>Días CTP</th>
+          </tr></thead>
+          <tbody id="rg-tbody"></tbody>
+        </table>
+      </div>
+      <div class="nota-tbl" id="rg-nota">* Captura el tipo de cambio en la barra superior para ver HAWK y CTP en pesos y comparar en la misma moneda. Se excluyen partidas de tema SERVICIO.</div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ COMPARATIVO POR UNIDAD ══════════ -->
+<div class="view" id="view-comparativo">
+  <div style="padding:28px 0 64px;">
+
+    <div class="sec" style="margin-top:0"><h2>Comparativo por Unidad y Pedido</h2><div class="sec-line"></div><div class="sec-tag" id="cp-tag">—</div></div>
+
+    <div class="tbl-card">
+      <div class="tbl-toolbar">
+        <span class="tbl-title">Desglose por unidad económica y número de pedido</span>
+        <span style="font-size:10.5px;color:var(--muted);font-style:italic" id="cp-tc-note">Sin tipo de cambio — HAWK y CTP en USD</span>
+      </div>
+      <div class="tbl-scroll" style="max-height:none;">
+        <table>
+          <thead><tr>
+            <th class="tl" style="min-width:100px">Unidad</th>
+            <th>Estado</th>
+            <th class="tl" style="min-width:200px">Pedido / Tema</th>
+            <th>Partidas</th>
+            <th>Días</th>
+            <th class="th-m">MATCO MXN</th>
+            <th class="th-h" id="cp-hh">HAWK</th>
+            <th class="th-h">Días</th>
+            <th class="th-c" id="cp-ch">CTP</th>
+            <th class="th-c">Días</th>
+          </tr></thead>
+          <tbody id="cp-tbody"></tbody>
+        </table>
+      </div>
+      <div class="nota-tbl">* El badge <span style="background:#D1FAE5;color:#047857;font-family:var(--mono);font-size:9px;font-weight:700;padding:1px 6px;border-radius:4px;text-transform:uppercase;">✓ mejor</span> indica el proveedor más económico cuando hay tipo de cambio y datos de los 3 proveedores.</div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ DETALLE POR PARTIDA ══════════ -->
+<div class="view" id="view-detalle">
+  <div style="padding:28px 0 64px;">
+
+    <div class="sec" style="margin-top:0"><h2>Detalle por Partida</h2><div class="sec-line"></div><div class="sec-tag" id="dp-tag">—</div></div>
+
+    <div class="tbl-card">
+      <div class="tbl-toolbar">
+        <span class="tbl-title">Partidas individuales en cotización</span>
+        <input class="search" type="text" id="dp-search" placeholder="Parte, descripción, unidad…">
+        <select class="flt" id="dp-econ"><option value="">Todas las unidades</option></select>
+        <select class="flt" id="dp-status-u"><option value="">Activa / Inactiva</option><option value="ACTIVA">Activa</option><option value="INACTIVA">Inactiva</option></select>
+        <span class="tbl-cnt" id="dp-cnt">—</span>
+      </div>
+      <div class="tbl-scroll" style="max-height:580px;">
+        <table>
+          <thead><tr>
+            <th class="tl">Unidad</th>
+            <th>Estado</th>
+            <th>Pedido</th>
+            <th class="tl" style="min-width:120px">Núm. parte</th>
+            <th class="tl" style="min-width:220px">Descripción</th>
+            <th>Cant.</th>
+            <th class="th-m">Unit. MATCO</th>
+            <th class="th-m">Total MATCO</th>
+            <th class="th-m">Días</th>
+            <th class="th-h">Unit. HAWK</th>
+            <th class="th-h" id="dp-hh">Total HAWK</th>
+            <th class="th-h">Días</th>
+            <th class="th-c">Unit. CTP</th>
+            <th class="th-c" id="dp-ch">Total CTP</th>
+            <th class="th-c">Días</th>
+            <th class="tl">Tema</th>
+          </tr></thead>
+          <tbody id="dp-tbody"></tbody>
+        </table>
+      </div>
+      <div class="nota-tbl" id="dp-nota">* Captura el tipo de cambio para ver HAWK y CTP en pesos.</div>
+    </div>
+  </div>
+</div>
+
+</main>
+
+<footer id="ftr">Control de Compras — Refacciones 2026 · Solo lectura</footer>
+
+<script>
+const D = /*__DATA__*/;
+</script>
+<script>
+(function(){
+const $ = id => document.getElementById(id);
+const ROWS = { val: D.rows };
+const MAQ  = D.maq || {};
+
+/* ── Formato ── */
+function mxn(v,c){ if(!v||isNaN(v)||v===0) return '—'; if(c&&v>=1e6) return '$'+(v/1e6).toFixed(2)+'M'; if(c&&v>=1000) return '$'+(v/1000).toFixed(0)+'k'; return '$'+v.toLocaleString('es-MX',{minimumFractionDigits:2,maximumFractionDigits:2}); }
+function usd(v,c){ if(!v||isNaN(v)||v===0) return '—'; if(c&&v>=1000) return 'USD '+(v/1000).toFixed(1)+'k'; return 'USD '+v.toLocaleString('es-MX',{minimumFractionDigits:2,maximumFractionDigits:2}); }
+function auto(v,tc,c){ if(!v) return '—'; return tc ? mxn(v*tc,c) : usd(v,c); }
+function tc(){ const v=parseFloat($('tc').value); return v&&v>1?v:null; }
+
+const ST = { COTIZANDO:{c:'#1D4ED8',l:'Cotizando'}, ENTREGADO:{c:'#047857',l:'Entregado'}, PEDIDO:{c:'#6D28D9',l:'Pedido'}, 'EN ALMACEN':{c:'#D97706',l:'En almacén'}, CANCELADO:{c:'#B91C1C',l:'Cancelado'} };
+const US = { ACTIVA:{cls:'sb-activa',l:'Activa'}, INACTIVA:{cls:'sb-inactiva',l:'Inactiva'}, SINIESTRADO:{cls:'sb-siniestrado',l:'Siniestrado'} };
+
+/* ── Carga Excel ── */
+$('btn-load').onclick = ()=>$('file-in').click();
+$('file-in').onchange = function(e){
+  const f=e.target.files[0]; if(!f) return;
+  const r=new FileReader();
+  r.onload=ev=>{
+    try{
+      const wb=XLSX.read(new Uint8Array(ev.target.result),{type:'array',cellDates:true});
+      const sh=wb.SheetNames.find(n=>n.trim().toUpperCase()==='CONTROL')||wb.SheetNames[0];
+      const raw=XLSX.utils.sheet_to_json(wb.Sheets[sh],{header:1,raw:true,defval:null,cellDates:true});
+      if(!raw||raw.length<2) throw new Error('Sin datos en CONTROL');
+      const parsed=[];
+      for(let i=1;i<raw.length;i++){
+        const r=raw[i]; if(!r||r.every(v=>v===null)) continue;
+        const n=v=>(typeof v==='number'&&v>0)?v:null;
+        const cl=v=>{ if(!v)return null; const s=String(v).trim(); return s||null; };
+        const tema=cl(r[32])||'';
+        parsed.push({
+          pedido:r[0], econStatus:cl(r[6])||'', numEcon:cl(r[7]),
+          parte:cl(r[8]?String(r[8]):null), desc:cl(r[9]),
+          cantidad:(typeof r[10]==='number')?r[10]:0,
+          matcoUnit:n(r[11]),matcoTotal:n(r[12]),matcoDias:cl(r[13]?String(r[13]):null),
+          hawkUnit:n(r[14]),hawkTotal:n(r[15]),hawkDias:cl(r[16]?String(r[16]):null),
+          ctpUnit:n(r[17]),ctpTotal:n(r[18]),ctpDias:cl(r[19]?String(r[19]):null),
+          status:String(r[20]||'').trim().toUpperCase(),
+          tema, esServicio:tema.toUpperCase()==='SERVICIO'||(!r[8]&&tema),
+        });
+      }
+      ROWS.val=parsed;
+      $('src-pill').textContent='✓ '+f.name; $('src-pill').className='src-pill live';
+      render();
+    }catch(er){ alert('No se pudo leer el archivo: '+er.message); }
+  };
+  r.readAsArrayBuffer(f); $('file-in').value='';
+};
+
+$('tc').oninput = render;
+
+/* ── Gráficas ── */
+let chMain=null, chDonut=null;
+function renderCharts(byEcon, cotAll){
+  if(chMain) chMain.destroy();
+  if(chDonut) chDonut.destroy();
+  const T = tc();
+  const econs = Object.keys(byEcon).sort((a,b)=>byEcon[b].m - byEcon[a].m);
+  const mVals = econs.map(e=>byEcon[e].m||0);
+  const hVals = econs.map(e=>{ const v=byEcon[e].h||0; return T?v*T:v; });
+  const cVals = econs.map(e=>{ const v=byEcon[e].c||0; return T?v*T:v; });
+  const sfx = T?'MXN':'USD';
+
+  chMain = new Chart($('ch-main'),{
+    type:'bar',
+    data:{
+      labels:econs,
+      datasets:[
+        {label:'MATCO (MXN)',data:mVals,backgroundColor:'rgba(29,78,216,.75)',borderRadius:3},
+        {label:`HAWTHORNE (${sfx})`,data:hVals,backgroundColor:'rgba(4,120,87,.75)',borderRadius:3},
+        {label:`CTP (${sfx})`,data:cVals,backgroundColor:'rgba(180,83,9,.75)',borderRadius:3},
+      ].filter(d=>d.data.some(v=>v>0))
+    },
+    options:{
+      responsive:true,
+      plugins:{
+        title:{display:T,text:`Comparativo en MXN · TC $${T?.toFixed(2)}`,color:'#6B7280',font:{family:'JetBrains Mono',size:9.5},padding:{bottom:6}},
+        legend:{position:'bottom',labels:{color:'#6B7280',font:{family:'JetBrains Mono',size:10},boxWidth:10}},
+        tooltip:{callbacks:{label:ctx=>{ const v=ctx.raw; if(!v||v===0)return null; const pfx=(!T&&ctx.datasetIndex>0)?'USD ':'$'; return ' '+ctx.dataset.label+': '+pfx+v.toLocaleString('es-MX',{minimumFractionDigits:0,maximumFractionDigits:0}); }}}
+      },
+      scales:{
+        x:{ticks:{color:'#9CA3AF',font:{family:'JetBrains Mono',size:9.5}},grid:{color:'rgba(229,231,235,.6)'}},
+        y:{ticks:{color:'#9CA3AF',font:{family:'JetBrains Mono',size:9},callback:v=>{ if(v>=1e6)return '$'+(v/1e6).toFixed(1)+'M'; if(v>=1000)return '$'+(v/1000).toFixed(0)+'k'; return '$'+v; }},grid:{color:'rgba(229,231,235,.6)'}}
+      }
+    }
+  });
+
+  // Donut por status
+  const sCounts=['COTIZANDO','PEDIDO','EN ALMACEN','ENTREGADO','CANCELADO'].map(s=>ROWS.val.filter(r=>r.status===s).length);
+  const sLabels=['Cotizando','Pedido','En almacén','Entregado','Cancelado'];
+  const sColors=['#1D4ED8','#6D28D9','#D97706','#047857','#B91C1C'];
+  chDonut = new Chart($('ch-donut'),{
+    type:'doughnut',
+    data:{labels:sLabels,datasets:[{data:sCounts,backgroundColor:sColors.map(c=>c+'CC'),borderWidth:2,borderColor:'#fff'}]},
+    options:{
+      cutout:'60%',
+      plugins:{legend:{position:'bottom',labels:{color:'#6B7280',font:{family:'JetBrains Mono',size:10},boxWidth:10,padding:8}}},
+    }
+  });
+}
+
+/* ── Unit Cards ── */
+function unitStatusClass(s){ const u=s||''; if(u.includes('INACT')) return 'sb-inactiva'; if(u.includes('SINI')) return 'sb-siniestrado'; return 'sb-activa'; }
+function unitStatusLabel(s){ const u=s||''; if(u.includes('INACT')) return 'Inactiva'; if(u.includes('SINI')) return 'Siniestrada'; return 'Activa'; }
+
+function renderUnits(byEcon, cotAll){
+  const T = tc();
+  const econs = Object.keys(byEcon).sort((a,b)=>byEcon[b].m - byEcon[a].m);
+  $('units-grid').innerHTML = econs.map(e=>{
+    const v = byEcon[e];
+    const info = MAQ[e]||{};
+    const econSt = v.econStatus||info.status||'';
+    const sbCls = unitStatusClass(econSt);
+    const sbLbl = unitStatusLabel(econSt);
+    const temas = [...v.temas].slice(0,2).join(' · ');
+    const mVal = v.m; const hVal = v.h; const cVal = v.c;
+    const hMXN = T&&hVal?hVal*T:null;
+    const cMXN = T&&cVal?cVal*T:null;
+    const vals = [mVal, hMXN, cMXN].filter(x=>x&&x>0);
+    const minV = vals.length>1?Math.min(...vals):null;
+    const bestM = minV&&mVal===minV&&hMXN&&cMXN;
+    const bestH = minV&&hMXN===minV;
+    const bestC = minV&&cMXN===minV;
+
+    // Info equipo
+    const equipo = [info.familia, info.marca, info.modelo].filter(Boolean).join(' ') || '—';
+    const obra   = info.obra || '—';
+
+    // Tabla de pedidos
+    const pedList = Object.keys(v.peds).sort((a,b)=>Number(a)-Number(b));
+    const pedRows = pedList.map(p=>{
+      const g = v.peds[p];
+      const hV = T&&g.h?mxn(g.h*T,true):usd(g.h,true);
+      const cV = T&&g.c?mxn(g.c*T,true):usd(g.c,true);
+      const pedMXN = T&&g.h?g.h*T:null;
+      const pedCMXN= T&&g.c?g.c*T:null;
+      const pedVals=[g.m,pedMXN,pedCMXN].filter(x=>x&&x>0);
+      const pedMin=pedVals.length>1?Math.min(...pedVals):null;
+      return `<tr>
+        <td>Ped. ${p}<br><span class="dimm" style="font-size:9.5px">${g.parts} partidas</span></td>
+        <td class="td-m">${mxn(g.m,true)}${pedMin&&g.m===pedMin?'<span class="pill-best">✓ mejor</span>':''}</td>
+        <td class="td-h">${hV}${pedMin&&pedMXN===pedMin?'<span class="pill-best">✓ mejor</span>':''}</td>
+        <td class="td-c">${cV}${pedMin&&pedCMXN===pedMin?'<span class="pill-best">✓ mejor</span>':''}</td>
+      </tr>`;
+    }).join('');
+
+    return `<div class="unit-card">
+      <div class="unit-card-hdr">
+        <div class="unit-badge">${e}</div>
+        <div class="unit-info">
+          <div class="unit-name">${equipo} · ${obra}</div>
+          <div class="unit-tema">${temas||'—'}</div>
+        </div>
+        <div class="status-badge ${sbCls}"><div class="sb-dot"></div>${sbLbl}</div>
+      </div>
+      <table class="unit-table">
+        <thead><tr><th>Pedido</th><th class="th-m">MATCO MXN</th><th class="th-h">HAWK ${T?'MXN':'USD'}</th><th class="th-c">CTP ${T?'MXN':'USD'}</th></tr></thead>
+        <tbody>${pedRows}</tbody>
+      </table>
+      <div class="unit-footer">
+        <span class="uf-stat"><b>${v.parts}</b> partidas · <b>${pedList.length}</b> pedido(s)</span>
+        <span class="uf-stat">MATCO: <b>${mxn(mVal,true)}</b></span>
+        ${!T&&hVal>0?`<span class="uf-stat" style="color:var(--green)">HAWK: <b>${usd(hVal,true)}</b> USD</span>`:''}
+        ${!T&&cVal>0?`<span class="uf-stat" style="color:var(--amber)">CTP: <b>${usd(cVal,true)}</b> USD</span>`:''}
+        ${T&&(hVal>0||cVal>0)?`<span class="uf-stat" style="color:var(--green)">HAWK MXN: <b>${hVal?mxn(hVal*T,true):'—'}</b></span>`:''}
+        ${T&&cVal>0?`<span class="uf-stat" style="color:var(--amber)">CTP MXN: <b>${mxn(cVal*T,true)}</b></span>`:''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+/* ── Tabla detalle ── */
+let COT_ROWS = [];
+function renderTable(rows){
+  const T=tc();
+  $('det-cnt').textContent = rows.length+' partidas';
+  $('det-hdr-h').textContent = 'HAWK '+(T?'MXN':'USD');
+  $('det-hdr-c').textContent = 'CTP ' +(T?'MXN':'USD');
+  $('det-nota').textContent = T
+    ? `* TC $${T.toFixed(2)} aplicado — HAWK y CTP convertidos a MXN para comparación directa con MATCO.`
+    : '* Captura el tipo de cambio en la barra superior para ver HAWK y CTP en pesos.';
+  $('det-tbody').innerHTML = rows.map(r=>{
+    const econSt = r.econStatus||'';
+    const sbCls = unitStatusClass(econSt);
+    const sbLbl = unitStatusLabel(econSt);
+    const hDisp = T&&r.hawkTotal?mxn(r.hawkTotal*T,false):usd(r.hawkTotal,false);
+    const cDisp = T&&r.ctpTotal ?mxn(r.ctpTotal *T,false):usd(r.ctpTotal, false);
+    return `<tr>
+      <td class="econ-cell tl">${r.numEcon||'—'}</td>
+      <td><span class="status-badge ${sbCls}" style="font-size:8.5px;padding:2px 7px">${sbLbl}</span></td>
+      <td>${r.pedido||'—'}</td>
+      <td class="tl" style="font-size:11px">${r.parte||'—'}</td>
+      <td class="tl" style="font-size:11px;max-width:220px;white-space:normal">${r.desc||'—'}</td>
+      <td>${r.cantidad||0}</td>
+      <td class="td-m">${r.matcoTotal?mxn(r.matcoTotal,false):'—'}</td>
+      <td class="td-h">${hDisp}</td>
+      <td class="dimm">${r.hawkDias||'—'}</td>
+      <td class="td-c">${cDisp}</td>
+      <td class="dimm">${r.ctpDias||'—'}</td>
+      <td class="tl" style="font-size:10.5px;color:var(--muted);max-width:180px;white-space:normal">${r.tema||'—'}${r.esServicio?'<span class="pill-srv" style="margin-left:4px">SERV.</span>':''}</td>
+    </tr>`;
+  }).join('');
+}
+
+/* ── RENDER PRINCIPAL ── */
+function render(){
+  const T = tc();
+  const cot = ROWS.val.filter(r=>r.status==='COTIZANDO');
+  COT_ROWS = cot;
+
+  // KPIs
+  const tM = cot.reduce((s,r)=>s+(r.matcoTotal||0),0);
+  const tH = cot.reduce((s,r)=>s+(r.hawkTotal||0),0);
+  const tC = cot.reduce((s,r)=>s+(r.ctpTotal||0),0);
+  const unids = [...new Set(cot.map(r=>r.numEcon).filter(Boolean))];
+  const peds  = [...new Set(cot.map(r=>String(r.pedido||'')).filter(Boolean))];
+  const inact = unids.filter(e=>{ const st=cot.find(r=>r.numEcon===e)?.econStatus||''; return st.includes('INACT')||st.includes('SINI'); });
+  const sinTodos = cot.filter(r=>!(r.matcoTotal&&r.hawkTotal&&r.ctpTotal)).length;
+
+  $('kv-cot').textContent=cot.length;
+  $('ks-cot').textContent=`${unids.length} unidades · ${peds.length} pedidos`;
+  $('kv-m').textContent=mxn(tM,true);
+  $('kv-h').textContent = T?mxn(tH*T,true):usd(tH,true);
+  $('ks-h').textContent = T?`${usd(tH,true)} · TC $${T.toFixed(2)}`:'Captura TC para ver en MXN';
+  $('kv-c').textContent = T?mxn(tC*T,true):usd(tC,true);
+  $('ks-c').textContent = T?`${usd(tC,true)} · TC $${T.toFixed(2)}`:'Captura TC para ver en MXN';
+  $('kv-inact').textContent=inact.length;
+  $('kv-sin').textContent=sinTodos;
+
+  // TC hint
+  $('tc-hint').textContent = T?`TC: $${T.toFixed(2)} — todo en MXN`:'Captura para comparar en pesos';
+  $('chart-note').textContent = T?`· comparando en MXN con TC $${T.toFixed(2)}`:'· sin TC: HAWK y CTP en USD';
+  $('cmp-tag').textContent=`${cot.length} partidas · ${unids.length} unidades`;
+  $('det-tag').textContent=`${cot.length} partidas en COTIZANDO`;
+
+  // Status strip
+  $('status-strip').innerHTML = ['COTIZANDO','ENTREGADO','PEDIDO','EN ALMACEN','CANCELADO'].map(s=>{
+    const cfg=ST[s]||{c:'#9CA3AF',l:s}; const n=ROWS.val.filter(r=>r.status===s).length;
+    return `<div class="chip"><div class="chip-dot" style="background:${cfg.c}"></div><span class="chip-lbl">${cfg.l}</span><span class="chip-n">${n}</span></div>`;
+  }).join('');
+
+  // Agrupar por unidad+pedido
+  const byEcon = {};
+  cot.forEach(r=>{
+    const e=r.numEcon||'S/A';
+    const p=String(r.pedido||'?');
+    if(!byEcon[e]) byEcon[e]={peds:{},parts:0,m:0,h:0,c:0,econStatus:r.econStatus||'',temas:new Set()};
+    if(!byEcon[e].peds[p]) byEcon[e].peds[p]={parts:0,m:0,h:0,c:0,dM:null,dH:null,dC:null};
+    const g=byEcon[e].peds[p];
+    byEcon[e].parts++; g.parts++;
+    byEcon[e].m+=r.matcoTotal||0; g.m+=r.matcoTotal||0;
+    byEcon[e].h+=r.hawkTotal||0;  g.h+=r.hawkTotal||0;
+    byEcon[e].c+=r.ctpTotal||0;   g.c+=r.ctpTotal||0;
+    if(r.tema) byEcon[e].temas.add(r.tema);
+  });
+
+  // Actualizar select de econ
+  const prevEcon=$('det-econ').value;
+  $('det-econ').innerHTML='<option value="">Todas las unidades</option>'+
+    Object.keys(byEcon).sort().map(e=>`<option value="${e}">${e}</option>`).join('');
+  if(prevEcon) $('det-econ').value=prevEcon;
+
+  renderCharts(byEcon, cot);
+  renderUnits(byEcon, cot);
+
+  filterTable();
+  $('ftr').textContent=`Control de Compras — Refacciones 2026 · ${cot.length} partidas en cotización`+(T?` · TC del día: $${T.toFixed(2)} MXN/USD`:'');
+}
+
+function filterTable(){
+  const q=$('det-search').value.trim().toLowerCase();
+  const eF=$('det-econ').value;
+  const sF=$('det-status-u').value;
+  let rows=COT_ROWS;
+  if(eF) rows=rows.filter(r=>r.numEcon===eF);
+  if(sF) rows=rows.filter(r=>(r.econStatus||'').includes(sF));
+  if(q) rows=rows.filter(r=>[r.numEcon,r.parte,r.desc,String(r.pedido||''),r.tema].map(v=>(v||'').toLowerCase()).join('|').includes(q));
+  renderTable(rows);
+}
+
+$('det-search').oninput=$('det-econ').onchange=$('det-status-u').onchange=filterTable;
+
+/* ══ TABS ══ */
+document.querySelectorAll('.tab-btn').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+    document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+    btn.classList.add('active');
+    $('view-'+btn.dataset.tab).classList.add('active');
+    renderActiveTab();
+  });
+});
+
+function unitStatusClass(s){ const u=(s||'').toUpperCase(); if(u.includes('INACT')) return 'sb-inactiva'; if(u.includes('SINI')) return 'sb-siniestrado'; return 'sb-activa'; }
+function unitStatusLabel(s){ const u=(s||'').toUpperCase(); if(u.includes('INACT')) return 'Inactiva'; if(u.includes('SINI')) return 'Siniestrada'; return 'Activa'; }
+function statusBadge(s){ return `<span class="status-badge ${unitStatusClass(s)}" style="font-size:8.5px;padding:2px 7px">${unitStatusLabel(s)}</span>`; }
+
+/* ── Resumen Global ── */
+function renderResumen(){
+  const T=tc();
+  const cot=ROWS.val.filter(r=>r.status==='COTIZANDO'&&!r.esServicio);
+  const unids=[...new Set(cot.map(r=>r.numEcon).filter(Boolean))];
+  const peds=[...new Set(cot.map(r=>String(r.pedido||'')).filter(Boolean))];
+  const tM=cot.reduce((s,r)=>s+(r.matcoTotal||0),0);
+  const tH=cot.reduce((s,r)=>s+(r.hawkTotal||0),0);
+  const tC=cot.reduce((s,r)=>s+(r.ctpTotal||0),0);
+  $('rg-tag').textContent=`${cot.length} partidas · ${unids.length} unidades`;
+  $('rg-unids').textContent=unids.length; $('rg-peds').textContent=peds.length;
+  $('rg-parts').textContent=cot.length;
+  $('rg-m').textContent=mxn(tM,true);
+  $('rg-h').textContent=T?mxn(tH*T,true):usd(tH,true);
+  $('rg-hs').textContent=T?`${usd(tH,true)} · TC $${T.toFixed(2)}`:'Captura TC para ver en MXN';
+  $('rg-c').textContent=T?mxn(tC*T,true):usd(tC,true);
+  $('rg-cs').textContent=T?`${usd(tC,true)} · TC $${T.toFixed(2)}`:'Captura TC para ver en MXN';
+  $('rg-tc-note').textContent=T?`TC $${T.toFixed(2)} — HAWK y CTP en MXN`:'Sin tipo de cambio — HAWK y CTP en USD';
+  $('rg-hh').textContent='HAWK '+(T?'MXN':'USD');
+  $('rg-ch').textContent='CTP '+(T?'MXN':'USD');
+  $('rg-nota').textContent=T?`* TC $${T.toFixed(2)} aplicado. Se excluyen partidas de tema SERVICIO.`:'* Captura el tipo de cambio para comparar en pesos. Se excluyen partidas de tema SERVICIO.';
+  const byE={};
+  cot.forEach(r=>{
+    const e=r.numEcon||'S/A';
+    if(!byE[e]) byE[e]={peds:new Set(),parts:0,m:0,h:0,c:0,st:r.econStatus||'',dH:null,dC:null};
+    if(r.pedido) byE[e].peds.add(String(r.pedido));
+    byE[e].parts++; byE[e].m+=r.matcoTotal||0; byE[e].h+=r.hawkTotal||0; byE[e].c+=r.ctpTotal||0;
+    if(!byE[e].dH&&r.hawkDias) byE[e].dH=r.hawkDias;
+    if(!byE[e].dC&&r.ctpDias)  byE[e].dC=r.ctpDias;
+  });
+  const sorted=Object.keys(byE).sort((a,b)=>byE[b].m-byE[a].m);
+  $('rg-cnt').textContent=sorted.length+' unidades';
+  $('rg-tbody').innerHTML=sorted.map(e=>{
+    const v=byE[e]; const info=MAQ[e]||{};
+    const equipo=[info.familia,info.marca,info.modelo].filter(Boolean).join(' ')||'—';
+    return `<tr>
+      <td class="econ-cell tl">${e}</td><td>${statusBadge(v.st)}</td>
+      <td class="tl" style="font-size:11px">${equipo}</td>
+      <td class="tl dimm" style="font-size:11px">${info.obra||'—'}</td>
+      <td>${v.peds.size}</td><td>${v.parts}</td>
+      <td class="td-m">${mxn(v.m,true)}</td>
+      <td class="td-h">${auto(v.h,T,true)}</td>
+      <td class="td-c">${auto(v.c,T,true)}</td>
+      <td class="dimm">${v.dH||'—'}</td><td class="dimm">${v.dC||'—'}</td>
+    </tr>`;
+  }).join('')+`<tr style="background:#EFF6FF;font-weight:700;border-top:2px solid #BFDBFE;">
+    <td class="tl econ-cell" colspan="4">TOTAL GLOBAL</td>
+    <td style="font-family:var(--mono)">${peds.length}</td>
+    <td style="font-family:var(--mono)">${cot.length}</td>
+    <td class="td-m" style="font-size:13px">${mxn(tM,true)}</td>
+    <td class="td-h" style="font-size:13px">${auto(tH,T,true)}</td>
+    <td class="td-c" style="font-size:13px">${auto(tC,T,true)}</td>
+    <td colspan="2">—</td>
+  </tr>`;
+}
+
+/* ── Comparativo por Unidad ── */
+function renderComparativo(){
+  const T=tc();
+  const cot=ROWS.val.filter(r=>r.status==='COTIZANDO'&&!r.esServicio);
+  $('cp-tag').textContent=`${cot.length} partidas · ${[...new Set(cot.map(r=>r.numEcon).filter(Boolean))].length} unidades`;
+  $('cp-tc-note').textContent=T?`TC $${T.toFixed(2)} — comparando en MXN`:'Sin tipo de cambio — HAWK y CTP en USD';
+  $('cp-hh').textContent='HAWK '+(T?'MXN':'USD');
+  $('cp-ch').textContent='CTP '+(T?'MXN':'USD');
+  const byE={};
+  cot.forEach(r=>{
+    const e=r.numEcon||'S/A'; const p=String(r.pedido||'?');
+    if(!byE[e]) byE[e]={st:r.econStatus||'',peds:{}};
+    if(!byE[e].peds[p]) byE[e].peds[p]={parts:0,m:0,h:0,c:0,dM:null,dH:null,dC:null,temas:new Set()};
+    const g=byE[e].peds[p];
+    g.parts++; g.m+=r.matcoTotal||0; g.h+=r.hawkTotal||0; g.c+=r.ctpTotal||0;
+    if(!g.dM&&r.matcoDias) g.dM=r.matcoDias;
+    if(!g.dH&&r.hawkDias)  g.dH=r.hawkDias;
+    if(!g.dC&&r.ctpDias)   g.dC=r.ctpDias;
+    if(r.tema) g.temas.add(r.tema);
+  });
+  const econs=Object.keys(byE).sort((a,b)=>{
+    const sm=e=>Object.values(byE[e].peds).reduce((s,p)=>s+p.m,0);
+    return sm(b)-sm(a);
+  });
+  let html='';
+  econs.forEach(e=>{
+    const v=byE[e]; const info=MAQ[e]||{};
+    const fam=[info.familia,info.marca,info.modelo].filter(Boolean).join(' ');
+    const pedList=Object.keys(v.peds).sort((a,b)=>Number(a)-Number(b));
+    const totM=pedList.reduce((s,p)=>s+v.peds[p].m,0);
+    const totH=pedList.reduce((s,p)=>s+v.peds[p].h,0);
+    const totC=pedList.reduce((s,p)=>s+v.peds[p].c,0);
+    const totPts=pedList.reduce((s,p)=>s+v.peds[p].parts,0);
+    html+=`<tr style="background:#F0F7FF;border-top:2px solid #BFDBFE;">
+      <td colspan="10" style="font-family:var(--mono);font-weight:700;font-size:12.5px;padding:12px 14px;text-align:left;text-transform:uppercase;">
+        <span style="color:var(--blue)">${e}</span>
+        ${fam?`<span style="color:var(--muted);font-weight:400;font-size:11px;text-transform:none"> — ${fam}</span>`:''}
+        ${info.obra?`<span style="color:var(--muted2);font-weight:400;font-size:11px;text-transform:none"> · ${info.obra}</span>`:''}
+      </td></tr>`;
+    pedList.forEach((p,i)=>{
+      const g=v.peds[p];
+      const hMXN=T&&g.h?g.h*T:null; const cMXN=T&&g.c?g.c*T:null;
+      const vals=[g.m,hMXN,cMXN].filter(x=>x&&x>0);
+      const mn=vals.length>1?Math.min(...vals):null;
+      const temaStr=[...g.temas].join(' · ').slice(0,90);
+      html+=`<tr style="${i%2===0?'':'background:#FAFAFA'}">
+        <td class="econ-cell tl" style="font-size:12px">${e}</td>
+        <td>${statusBadge(v.st)}</td>
+        <td class="tl" style="font-size:11px;max-width:260px;white-space:normal">Ped. ${p}${temaStr?`<br><span style="color:var(--muted);font-size:9.5px">${temaStr}</span>`:''}</td>
+        <td>${g.parts}</td><td class="dimm">${g.dM||'—'}</td>
+        <td class="td-m">${mxn(g.m,true)}${mn&&g.m===mn?'<span class="pill-best">✓ mejor</span>':''}</td>
+        <td class="td-h">${auto(g.h,T,true)}${mn&&hMXN===mn?'<span class="pill-best">✓ mejor</span>':''}</td>
+        <td class="dimm">${g.dH||'—'}</td>
+        <td class="td-c">${auto(g.c,T,true)}${mn&&cMXN===mn?'<span class="pill-best">✓ mejor</span>':''}</td>
+        <td class="dimm">${g.dC||'—'}</td>
+      </tr>`;
+    });
+    const hTMXN=T&&totH?totH*T:null; const cTMXN=T&&totC?totC*T:null;
+    const tVals=[totM,hTMXN,cTMXN].filter(x=>x&&x>0);
+    const tMn=tVals.length>1?Math.min(...tVals):null;
+    html+=`<tr style="background:#FFFBEB;border-top:1px solid #FDE68A;font-weight:700;">
+      <td class="tl" style="font-family:var(--mono);font-size:11px;color:var(--amber)">SUBTOTAL</td><td></td>
+      <td class="tl dimm" style="font-size:10.5px">${pedList.length} pedido(s) · ${totPts} partidas</td>
+      <td style="font-family:var(--mono)">${totPts}</td><td>—</td>
+      <td class="td-m">${mxn(totM,true)}${tMn&&totM===tMn?'<span class="pill-best">✓</span>':''}</td>
+      <td class="td-h">${auto(totH,T,true)}${tMn&&hTMXN===tMn?'<span class="pill-best">✓</span>':''}</td><td>—</td>
+      <td class="td-c">${auto(totC,T,true)}${tMn&&cTMXN===tMn?'<span class="pill-best">✓</span>':''}</td><td>—</td>
+    </tr><tr><td colspan="10" style="height:6px;background:var(--bg);padding:0;border:none;"></td></tr>`;
+  });
+  $('cp-tbody').innerHTML=html;
+}
+
+/* ── Detalle por Partida ── */
+let DP_ROWS=[];
+function renderDetallePartida(){
+  const T=tc();
+  DP_ROWS=ROWS.val.filter(r=>r.status==='COTIZANDO');
+  const unids=[...new Set(DP_ROWS.map(r=>r.numEcon).filter(Boolean))].sort();
+  const prev=$('dp-econ').value;
+  $('dp-econ').innerHTML='<option value="">Todas las unidades</option>'+unids.map(e=>`<option value="${e}">${e}</option>`).join('');
+  if(prev) $('dp-econ').value=prev;
+  $('dp-tag').textContent=`${DP_ROWS.length} partidas en COTIZANDO`;
+  $('dp-hh').textContent='Total HAWK '+(T?'MXN':'USD');
+  $('dp-ch').textContent='Total CTP '+(T?'MXN':'USD');
+  $('dp-nota').textContent=T?`* TC $${T.toFixed(2)} — totales HAWK y CTP en MXN para comparación directa.`:'* Captura el tipo de cambio para ver HAWK y CTP en pesos.';
+  filterDetalle();
+}
+function filterDetalle(){
+  const T=tc();
+  const q=$('dp-search').value.trim().toLowerCase();
+  const eF=$('dp-econ').value;
+  const sF=$('dp-status-u').value;
+  let rows=DP_ROWS;
+  if(eF) rows=rows.filter(r=>r.numEcon===eF);
+  if(sF) rows=rows.filter(r=>(r.econStatus||'').toUpperCase().includes(sF));
+  if(q) rows=rows.filter(r=>[r.numEcon,r.parte,r.desc,String(r.pedido||''),r.tema].map(v=>(v||'').toLowerCase()).join('|').includes(q));
+  $('dp-cnt').textContent=rows.length+' partidas';
+  $('dp-tbody').innerHTML=rows.map((r,i)=>{
+    const hTot=T&&r.hawkTotal?mxn(r.hawkTotal*T,false):usd(r.hawkTotal,false);
+    const cTot=T&&r.ctpTotal ?mxn(r.ctpTotal*T, false):usd(r.ctpTotal, false);
+    const hU=T&&r.hawkUnit?mxn(r.hawkUnit*T,false):(r.hawkUnit?usd(r.hawkUnit,false):'—');
+    const cU=T&&r.ctpUnit ?mxn(r.ctpUnit*T, false):(r.ctpUnit ?usd(r.ctpUnit, false):'—');
+    return `<tr style="${i%2===0?'':'background:#FAFAFA'}">
+      <td class="econ-cell tl">${r.numEcon||'—'}</td>
+      <td>${statusBadge(r.econStatus||'')}</td>
+      <td>${r.pedido||'—'}</td>
+      <td class="tl" style="font-size:11px">${r.parte||'—'}</td>
+      <td class="tl" style="font-size:11px;max-width:220px;white-space:normal">${r.desc||'—'}</td>
+      <td>${r.cantidad||0}</td>
+      <td class="td-m">${r.matcoUnit?mxn(r.matcoUnit,false):'—'}</td>
+      <td class="td-m">${r.matcoTotal?mxn(r.matcoTotal,false):'—'}</td>
+      <td class="dimm">${r.matcoDias||'—'}</td>
+      <td class="td-h">${hU}</td><td class="td-h">${hTot}</td>
+      <td class="dimm">${r.hawkDias||'—'}</td>
+      <td class="td-c">${cU}</td><td class="td-c">${cTot}</td>
+      <td class="dimm">${r.ctpDias||'—'}</td>
+      <td class="tl" style="font-size:10.5px;color:var(--muted);max-width:160px;white-space:normal">${r.tema||'—'}${r.esServicio?'<span class="pill-srv" style="margin-left:4px">SERV.</span>':''}</td>
+    </tr>`;
+  }).join('');
+}
+$('dp-search').oninput=$('dp-econ').onchange=$('dp-status-u').onchange=filterDetalle;
+
+function renderActiveTab(){
+  const t=document.querySelector('.tab-btn.active')?.dataset.tab;
+  if(t==='resumen') renderResumen();
+  else if(t==='comparativo') renderComparativo();
+  else if(t==='detalle') renderDetallePartida();
+}
+
+render();
+})();
+</script>
+</body>
+</html>
